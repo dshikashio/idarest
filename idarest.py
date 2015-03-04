@@ -213,9 +213,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class Worker(threading.Thread):
-    def __init__(self):
+    def __init__(self, host='127.0.0.1', port=8899):
         threading.Thread.__init__(self)
-        self.httpd = ThreadedHTTPServer(('0.0.0.0', PORT), IDARequestHandler)
+        self.httpd = ThreadedHTTPServer((host, port), IDARequestHandler)
 
     def run(self):
         self.httpd.serve_forever()
@@ -263,17 +263,40 @@ class myplugin_t(idaapi.plugin_t):
         idaapi.msg("Initializing %s\n" % self.wanted_name)
         self.ctxs = []
         self.worker = None
+        self.port = 8899
+        self.host = '127.0.0.1'
         ret = self._add_menus()
         idaapi.msg("Init done\n")
         return ret
 
+    def _get_netinfo(self):
+        info = idaapi.askstr(0,
+                "{0}:{1}".format(self.host, self.port),
+                "Enter IDA Rest Connection Info")
+        if not info:
+            raise ValueError("User canceled")
+        host,port = info.split(':')
+        port = int(port)
+        return host,port
+
     def start(self, *args):
         idaapi.msg("Starting IDARest\n")
         if self.worker:
+            idaapi.msg("Already running\n")
             return
-        # XXX - Ask user for listening host / port
-        self.worker = Worker()
+        try:
+            host,port = self._get_netinfo()
+        except:
+            host, port = "127.0.0.1", "8899"
+        try:
+            self.worker = Worker(host,port)
+        except Exception as e:
+            idaapi.msg("Error starting worker : " + str(e) + "\n")
+            return
         self.worker.start()
+        self.host = host
+        self.port = port
+        idaapi.msg("Worker running\n")
 
     def stop(self, *args):
         idaapi.msg("Stopping IDARest\n")
