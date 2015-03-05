@@ -61,9 +61,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         except HTTPRequestError as e:
             response = {'code': e.code, 'msg' : e.msg}
         except ValueError as e:
-            return {'code': 400, 'msg': 'ValueError : ' + str(e)}
+            response = {'code': 400, 'msg': 'ValueError : ' + str(e)}
         except KeyError as e:
-            return {'code': 400, 'msg': 'KeyError : ' + str(e)}
+            response = {'code': 400, 'msg': 'KeyError : ' + str(e)}
 
         jsonp_callback = self._extract_callback()
         if jsonp_callback:
