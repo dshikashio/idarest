@@ -161,13 +161,13 @@ class IDARequestHandler(HTTPRequestHandler):
             return { 'ea' : self._hex(idaapi.get_screen_ea()) }
 
     def _get_segment_info(self, s):
-        return [
-            idaapi.get_true_segm_name(s),
-            idaapi.get_segm_name(s),
-            self._hex(s.startEA),
-            self._hex(s.endEA),
-            self._hex(s.size())
-            ]
+        return {
+                'name' : idaapi.get_true_segm_name(s),
+                'ida_name' : idaapi.get_segm_name(s),
+                'start' : self._hex(s.startEA),
+                'end' : self._hex(s.endEA),
+                'size' : self._hex(s.size())
+            }
 
     @HTTPRequestHandler.route('/segments/?')
     def segments(self, args):
