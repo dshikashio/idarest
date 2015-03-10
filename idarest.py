@@ -68,7 +68,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         jsonp_callback = self._extract_callback()
         if jsonp_callback:
             content_type = 'application/javascript'
-            response_fmt = jsonp_callback + '({0})'
+            response_fmt = jsonp_callback + '({0});'
         else:
             content_type = 'application/json'
             response_fmt = '{0}'
