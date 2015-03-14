@@ -22,6 +22,9 @@ class HTTPRequestError(BaseException):
         self.msg = msg
         self.code = code
 
+class UnknownApiError(HTTPRequestError):
+    pass
+
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     routes = []
 
@@ -52,11 +55,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             view_function = route_match
             return view_function(self, args)
         else:
-            raise HTTPRequestError('Route "{0}" has not been registered'.format(path), 404)
+            raise UnknownApiError('Route "{0}" has not been registered'.format(path), 404)
 
     def _serve(self, args):
         try:
-            response = self._serve_route(args)
+            response = {
+                'code' : 200,
+                'msg'  : 'OK',
+                'data' : self._serve_route(args)
+            }
+        except UnknownApiError as e:
+            self.send_error(e.code, e.msg)
+            return
         except HTTPRequestError as e:
             response = {'code': e.code, 'msg' : e.msg}
         except ValueError as e:
@@ -76,11 +86,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', content_type)
         self.end_headers()
 
-        response = {
-            'code' : 200,
-            'msg'  : 'OK',
-            'data' : response
-        }
         response = json.dumps(response)
         self.wfile.write(response_fmt.format(response))
 
