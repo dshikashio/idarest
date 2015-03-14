@@ -5,7 +5,7 @@ A simple REST-like API for basic interoperability with IDA Pro.
 
 
 Installing and Running
-======================
+----------------------
 Copy idarest.py to IDA Pro's plugin directory.
 
 Use the Edit menu in IDA Pro to start and stop the plugin
@@ -17,7 +17,7 @@ Provide it in '''host:port''' format.
 
 
 Conventions
-===========
+-----------
 
 errors - 200, 400, or 404
 Get vs. Post
@@ -27,4 +27,4 @@ numbers are 0x hex strings
 
 
 API
-===
+---
