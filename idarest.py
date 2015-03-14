@@ -33,27 +33,29 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         return re.compile("^{0}$".format(route))
 
     @staticmethod
-    def route(route_str):
+    def route(route_str, prefn=lambda x: x, postfn=lambda x: x):
         def decorator(f):
             route_path = API_PREFIX + '/' + route_str + '/?'
             route_pattern = HTTPRequestHandler.build_route_pattern(route_path)
-            HTTPRequestHandler.routes.append((route_pattern, f))
+            HTTPRequestHandler.routes.append((route_pattern, f, prefn, postfn))
             return f
         return decorator
 
     def get_route_match(self, path):
-        for route_pattern, view_function in self.routes:
+        for route_pattern,view_function,pre_function,post_function in self.routes:
             m = route_pattern.match(path)
             if m:
-                return view_function
+                return view_function,pre_function,post_function
         return None
 
     def _serve_route(self, args):
         path = urlparse.urlparse(self.path).path
         route_match = self.get_route_match(path)
         if route_match:
-            view_function = route_match
-            return view_function(self, args)
+            view_function,pre_function,post_function = route_match
+            args = pre_function(args) 
+            result = view_function(self, args)
+            return post_function(result)
         else:
             raise UnknownApiError('Route "{0}" has not been registered'.format(path), 404)
 
