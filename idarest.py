@@ -181,10 +181,30 @@ def check_ea(f):
     def wrapper(self, args):
         if 'ea' in args:
             try:
-                ea = self._ea(args['ea'])
+                ea = int(args['ea'], 16)
             except ValueError:
-                raise IDARequestError('ea parameter malformed - must be 0xABCD', 400)
+                raise IDARequestError(
+                        'ea parameter malformed - must be 0xABCD', 400)
             args['ea'] = ea
+        return f(self, args)
+    return wrapper
+
+def check_color(f):
+    def wrapper(self, args):
+        if 'color' in args:
+            color = args['color']
+            try:
+                color = color.tolower()
+                color.lstrip('#')
+                color.lstrip('0x')
+                color.rstrip('h')
+                # IDA Color is BBGGRR, we need to convert from RRGGBB
+                color = color[-2:] + color[2:4] + color[:2]
+                color = int(color, 16)
+            except:
+                raise IDARequestError(
+                        'color parameter malformed - must be RRGGBB form', 400)
+            args['color'] = color
         return f(self, args)
     return wrapper
 
@@ -206,25 +226,16 @@ class IDARequestHandler(HTTPRequestHandler):
     def _hex(v):
         return hex(v).rstrip('L')
 
-    @staticmethod
-    def _ea(x):
-        return int(x, 16)
-
-    @staticmethod
-    def _color(x):
-        # XXX IDA Color is BBGGRR, we should accept and convert from RRGGBB
-        # x[-2:] + x[2:4] + x[:2]
-        return IDARequestHandler._ea(x)
-
     @HTTPRequestHandler.route('cursor')
     @check_ea
     def cursor(self, args):
         if 'ea' in args:
+            ea = args['ea']
             def f():
                 #tform = idaapi.find_tform(args['window'])
                 #if tform:
                 #    idaapi.switchto_tform(tform, 1)
-                idaapi.jumpto(args['ea'])
+                idaapi.jumpto(ea)
             idaapi.execute_sync(f, idaapi.MFF_FAST)
             return {}
         else:
@@ -262,11 +273,13 @@ class IDARequestHandler(HTTPRequestHandler):
         return m
 
     @HTTPRequestHandler.route('color')
+    @check_color
+    @check_ea
     @require_params('ea')
     def color(self, args):
-        ea = self._ea(args['ea'])
         if 'color' in args:
-            color = self._color(args['color'])
+            ea = args['ea']
+            color = args['color']
             def f():
                 idc.SetColor(ea, idc.CIC_ITEM, color)
                 idc.Refresh()
