@@ -30,7 +30,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def build_route_pattern(route):
-        return re.compile("^{0}$".format(route))
+        return re.compile("^/{0}/?$".format(route))
 
     @staticmethod
     def route(route_str):
@@ -166,7 +166,7 @@ class IDARequestHandler(HTTPRequestHandler):
     def _color(x):
         return IDARequestHandler._ea(x)
 
-    @HTTPRequestHandler.route('/cursor/?')
+    @HTTPRequestHandler.route('cursor')
     def cursor(self, args):
         if 'ea' in args:
             ea = self._ea(args['ea'])
@@ -189,7 +189,7 @@ class IDARequestHandler(HTTPRequestHandler):
                 'size' : self._hex(s.size())
             }
 
-    @HTTPRequestHandler.route('/segments/?')
+    @HTTPRequestHandler.route('segments')
     def segments(self, args):
         if 'ea' in args:
             ea = self._ea(args['ea'])
@@ -204,14 +204,14 @@ class IDARequestHandler(HTTPRequestHandler):
                 m['segments'].append(self._get_segment_info(s))
             return m
 
-    @HTTPRequestHandler.route('/names/?')
+    @HTTPRequestHandler.route('names')
     def names(self, args):
         m = {'names' : []}
         for n in idautils.Names():
             m['names'].append([self._hex(n[0]), n[1]])
         return m
 
-    @HTTPRequestHandler.route('/color/?')
+    @HTTPRequestHandler.route('color')
     def color(self, args):
         ea = self._ea(args['ea'])
         if 'color' in args:
