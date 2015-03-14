@@ -74,17 +74,26 @@ class CursorTestCase(unittest.TestCase):
     def setUp(self):
         self.url = BASE_URL + '/cursor'
 
-    def test_get_cursor(self):
-        self.fail()
+    def _check_json_codes(self, r):
+        self.assertEqual(r.headers['content-type'], 'application/json')
+        response = r.json()
+        self.assertTrue('code' in response, "missing code from response")
+        self.assertEqual(response['code'], 200)
+        self.assertTrue('msg' in response, "missing msg from response")
 
-    def test_get_invalid_cursor(self):
-        self.fail()
+    def test_get_cursor(self):
+        r = requests.get(self.url)
+        self._check_json_codes(r)
 
     def test_set_cursor(self):
-        self.fail()
+        r = requests.get(self.url, params={'ea': '0x67a82'})
+        response = r.json()
+        self.assertEqual(response['code'], 200)
 
     def test_set_invalid_cursor(self):
-        self.fail()
+        r = requests.get(self.url, params={'ea': 'hhhhhh'})
+        response = r.json()
+        self.assertEqual(response['code'], 400)
 
 class SegmentsTestCase(unittest.TestCase):
     def setUp(self):
@@ -102,7 +111,6 @@ class NamesTestCase(unittest.TestCase):
 
     def test_get_names(self):
         self.fail()
-
 
 class ColorTestCase(unittest.TestCase):
     def setUp(self):

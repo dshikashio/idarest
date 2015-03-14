@@ -32,9 +32,17 @@ HTTPRequestHandler.prefn
 HTTPRequestHandler.postfn
 HTTPRequestHandler.route
 
+@check_ea
+@require_params
+
+IDARequestError
+
 
 API
 ---
-
+cursor
+segments
+names
+color
 
 

@@ -177,6 +177,27 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 API handlers for IDA
 
 """
+def check_ea(f):
+    def wrapper(self, args):
+        if 'ea' in args:
+            try:
+                ea = self._ea(args['ea'])
+            except ValueError:
+                raise IDARequestError('ea parameter malformed - must be 0xABCD', 400)
+            args['ea'] = ea
+        return f(self, args)
+    return wrapper
+
+def require_params(*params):
+    def decorator(f):
+        def wrapped(self, args):
+            for x in params:
+                if x not in args:
+                    raise IDARequestError('missing parameter {0}'.format(x), 400)
+            return f(self, args)
+        return wrapped
+    return decorator
+
 class IDARequestError(HTTPRequestError):
     pass
 
@@ -195,17 +216,8 @@ class IDARequestHandler(HTTPRequestHandler):
         # x[-2:] + x[2:4] + x[:2]
         return IDARequestHandler._ea(x)
 
-    @HTTPRequestHandler.prefn('cursor')
-    def cursor_pre(self, args):
-        if 'ea' in args:
-            try:
-                ea = self._ea(args['ea'])
-            except ValueError:
-                raise IDARequestError('ea parameter malformed - must be 0xABCD', 400)
-            args['ea'] = ea
-        return args
-
     @HTTPRequestHandler.route('cursor')
+    @check_ea
     def cursor(self, args):
         if 'ea' in args:
             def f():
@@ -228,12 +240,12 @@ class IDARequestHandler(HTTPRequestHandler):
             }
 
     @HTTPRequestHandler.route('segments')
+    @check_ea
     def segments(self, args):
         if 'ea' in args:
-            ea = self._ea(args['ea'])
-            s = idaapi.getseg(ea)
+            s = idaapi.getseg(args['ea'])
             if not s:
-                raise  IDARequestError('Invalid address', 400)
+                raise IDARequestError('Invalid address', 400)
             return {'segment': self._get_segment_info(s)}
         else:
             m = {'segments': []}
@@ -250,6 +262,7 @@ class IDARequestHandler(HTTPRequestHandler):
         return m
 
     @HTTPRequestHandler.route('color')
+    @require_params('ea')
     def color(self, args):
         ea = self._ea(args['ea'])
         if 'color' in args:
