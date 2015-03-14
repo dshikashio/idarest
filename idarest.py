@@ -30,12 +30,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def build_route_pattern(route):
-        return re.compile("^/{0}/?$".format(route))
+        return re.compile("^{0}$".format(route))
 
     @staticmethod
     def route(route_str):
         def decorator(f):
-            route_path = API_PREFIX + route_str
+            route_path = API_PREFIX + '/' + route_str + '/?'
             route_pattern = HTTPRequestHandler.build_route_pattern(route_path)
             HTTPRequestHandler.routes.append((route_pattern, f))
             return f
