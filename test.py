@@ -74,17 +74,45 @@ class CursorTestCase(unittest.TestCase):
     def setUp(self):
         self.url = BASE_URL + '/cursor'
 
+    def test_get_cursor(self):
+        self.fail()
+
+    def test_get_invalid_cursor(self):
+        self.fail()
+
+    def test_set_cursor(self):
+        self.fail()
+
+    def test_set_invalid_cursor(self):
+        self.fail()
+
 class SegmentsTestCase(unittest.TestCase):
     def setUp(self):
         self.url = BASE_URL + '/segments'
+
+    def test_get_all_segments(self):
+        self.fail()
+
+    def test_get_segment_by_address(self):
+        self.fail()
 
 class NamesTestCase(unittest.TestCase):
     def setUp(self):
         self.url = BASE_URL + '/names'
 
+    def test_get_names(self):
+        self.fail()
+
+
 class ColorTestCase(unittest.TestCase):
     def setUp(self):
         self.url = BASE_URL + '/color'
+
+    def test_get_address_color(self):
+        self.fail()
+
+    def test_set_address_color(self):
+        self.fail()
 
 
 if __name__ == '__main__':

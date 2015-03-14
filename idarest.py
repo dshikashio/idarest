@@ -13,8 +13,6 @@ try:
 except:
     pass
 
-PORT = 8899
-
 API_PREFIX = '/ida/api/v1.0'
 
 class HTTPRequestError(BaseException):
@@ -26,36 +24,67 @@ class UnknownApiError(HTTPRequestError):
     pass
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
-    routes = []
+    routes = {}
+    prefns = {}
+    postfns = {}
 
     @staticmethod
     def build_route_pattern(route):
         return re.compile("^{0}$".format(route))
 
     @staticmethod
-    def route(route_str, prefn=lambda x: x, postfn=lambda x: x):
+    def route(route_str):
         def decorator(f):
             route_path = API_PREFIX + '/' + route_str + '/?'
             route_pattern = HTTPRequestHandler.build_route_pattern(route_path)
-            HTTPRequestHandler.routes.append((route_pattern, f, prefn, postfn))
+            HTTPRequestHandler.routes[route_str] = (route_pattern, f)
             return f
         return decorator
 
-    def get_route_match(self, path):
-        for route_pattern,view_function,pre_function,post_function in self.routes:
+    @staticmethod
+    def prefn(route_str):
+        def decorator(f):
+            HTTPRequestHandler.prefns.setdefault(route_str, []).append(f)
+            return f
+        return decorator
+
+    @staticmethod
+    def postfn(route_str):
+        def decorator(f):
+            HTTPRequestHandler.postfns.setdefault(route_str, []).append(f)
+            return f
+        return decorator
+
+    def _get_route_match(self, path):
+        for (key, (route_pattern,view_function)) in self.routes.items():
             m = route_pattern.match(path)
             if m:
-                return view_function,pre_function,post_function
+                return key,view_function
         return None
+
+    def _get_route_prefn(self, key):
+        try:
+            return self.prefns[key]
+        except:
+            return []
+
+    def _get_route_postfn(self, key):
+        try:
+            return self.postfns[key]
+        except:
+            return []
 
     def _serve_route(self, args):
         path = urlparse.urlparse(self.path).path
-        route_match = self.get_route_match(path)
+        route_match = self._get_route_match(path)
         if route_match:
-            view_function,pre_function,post_function = route_match
-            args = pre_function(args) 
-            result = view_function(self, args)
-            return post_function(result)
+            key,view_function = route_match
+            for prefn in self._get_route_prefn(key):
+                args = prefn(self, args)
+            results = view_function(self, args)
+            for postfn in self._get_route_postfn(key):
+                results = postfn(self, results)
+            return results
         else:
             raise UnknownApiError('Route "{0}" has not been registered'.format(path), 404)
 
@@ -158,25 +187,32 @@ class IDARequestHandler(HTTPRequestHandler):
 
     @staticmethod
     def _ea(x):
-        try:
-            return int(x)
-        except ValueError:
-            return int(x, 16)
+        return int(x, 16)
 
-    # XXX IDA Color is BBGGRR, we should accept and convert from RGB
     @staticmethod
     def _color(x):
+        # XXX IDA Color is BBGGRR, we should accept and convert from RRGGBB
+        # x[-2:] + x[2:4] + x[:2]
         return IDARequestHandler._ea(x)
+
+    @HTTPRequestHandler.prefn('cursor')
+    def cursor_pre(self, args):
+        if 'ea' in args:
+            try:
+                ea = self._ea(args['ea'])
+            except ValueError:
+                raise IDARequestError('ea parameter malformed - must be 0xABCD', 400)
+            args['ea'] = ea
+        return args
 
     @HTTPRequestHandler.route('cursor')
     def cursor(self, args):
         if 'ea' in args:
-            ea = self._ea(args['ea'])
             def f():
                 #tform = idaapi.find_tform(args['window'])
                 #if tform:
                 #    idaapi.switchto_tform(tform, 1)
-                idaapi.jumpto(int(args['ea'], 16))
+                idaapi.jumpto(args['ea'])
             idaapi.execute_sync(f, idaapi.MFF_FAST)
             return {}
         else:

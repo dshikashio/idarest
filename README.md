@@ -26,5 +26,15 @@ Response format (code, msg, data) in json
 numbers are 0x hex strings
 
 
+Adding New APIs
+---------------
+HTTPRequestHandler.prefn
+HTTPRequestHandler.postfn
+HTTPRequestHandler.route
+
+
 API
 ---
+
+
+
