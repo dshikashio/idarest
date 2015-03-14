@@ -22,7 +22,6 @@ class HTTPRequestError(BaseException):
         self.msg = msg
         self.code = code
 
-
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     routes = []
 
@@ -76,16 +75,28 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', content_type)
         self.end_headers()
-        if response:
-            response = json.dumps(response)
-            self.wfile.write(response_fmt.format(response))
+
+        response = {
+            'code' : 200,
+            'msg'  : 'OK',
+            'data' : response
+        }
+        response = json.dumps(response)
+        self.wfile.write(response_fmt.format(response))
 
     def _extract_post_map(self):
         content_type,_t = cgi.parse_header(self.headers.getheader('content-type'))
         if content_type != 'application/json':
-            raise HTTPRequestError('Bad content-type, use application/json', 403)
+            raise HTTPRequestError(
+                    'Bad content-type, use application/json',
+                    400)
         length = int(self.headers.getheader('content-length'))
-        return json.loads(self.rfile.read(length))
+        try:
+            return json.loads(self.rfile.read(length))
+        except ValueError as e:
+            raise HTTPRequestError(
+                    'Bad or malformed json content',
+                    400)
 
     def _extract_query_map(self):
         query = urlparse.urlparse(self.path).query
@@ -93,7 +104,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         args = {}
         for k,v in qd.iteritems():
             if len(v) != 1:
-                raise ValueError("Bad query args")
+                raise HTTPRequestError(
+                    "Query param specified multiple times : " + k,
+                    400)
             args[k.lower()] = v[0]
         return args
 
@@ -101,33 +114,35 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             args = self._extract_query_map()
             return args['callback']
-        except KeyError:
-            return ''
-        except ValueError:
+        except:
             return ''
 
     def do_POST(self):
         try:
             args = self._extract_post_map() 
-        except TypeError:
-            args = '{}'
-        except ValueError:
+        except TypeError as e:
+            # thrown on no content, just continue on
             args = '{}'
         except HTTPRequestError as e:
             self.send_error(e.code, e.msg)
             return
-
         self._serve(args)
 
     def do_GET(self):
         try:
             args = self._extract_query_map() 
-        except TypeError:
-            args = '{}'
-        except ValueError:
-            args = '{}'
+        except HTTPRequestError as e:
+            self.send_error(e.code, e.msg)
+            return
         self._serve(args)
 
+
+"""
+API handlers for IDA
+
+"""
+class IDARequestError(HTTPRequestError):
+    pass
 
 class IDARequestHandler(HTTPRequestHandler):
     @staticmethod
@@ -156,7 +171,7 @@ class IDARequestHandler(HTTPRequestHandler):
                 #    idaapi.switchto_tform(tform, 1)
                 idaapi.jumpto(int(args['ea'], 16))
             idaapi.execute_sync(f, idaapi.MFF_FAST)
-            return { 'code' : 200, 'msg' : 'OK' }
+            return {}
         else:
             return { 'ea' : self._hex(idaapi.get_screen_ea()) }
 
@@ -175,7 +190,7 @@ class IDARequestHandler(HTTPRequestHandler):
             ea = self._ea(args['ea'])
             s = idaapi.getseg(ea)
             if not s:
-                raise  HTTPRequestError('Invalid address', 400)
+                raise  IDARequestError('Invalid address', 400)
             return {'segment': self._get_segment_info(s)}
         else:
             m = {'segments': []}
@@ -200,14 +215,23 @@ class IDARequestHandler(HTTPRequestHandler):
                 idc.SetColor(ea, idc.CIC_ITEM, color)
                 idc.Refresh()
             idaapi.execute_sync(f, idaapi.MFF_WRITE)
-            return {'code': 200, 'msg': 'OK'}
+            return {}
         else:
             return {'color' : str(GetColor(ea, idc.CIC_ITEM))}
 
     # Add query handler
     # take an address, return as much known about is as possible
+    
+    # provide an info function - return all meta, general ida info
         
 
+"""
+Threaded HTTP Server and Worker
+
+Use a worker thread to manage the server so that we can run inside of
+IDA Pro without blocking execution.
+
+"""
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
 
@@ -223,14 +247,14 @@ class Worker(threading.Thread):
     def stop(self):
         self.httpd.shutdown()
 
-#worker = Worker()
-#worker.start()
-#httpd = ThreadedHTTPServer(('0.0.0.0', PORT), IDARequestHandler)
-#httpd.serve_forever()
+"""
+IDA Pro Plugin Interface
+
+Define an IDA Python plugin required class and function.
+"""
 
 MENU_PATH = 'Edit/Other'
-
-class myplugin_t(idaapi.plugin_t):
+class idarest_plugin_t(idaapi.plugin_t):
     flags = idaapi.PLUGIN_KEEP
     comment = ""
     help = "IDA Rest API for basic RE tool interoperability"
@@ -288,6 +312,8 @@ class myplugin_t(idaapi.plugin_t):
             host,port = self._get_netinfo()
         except:
             host, port = "127.0.0.1", "8899"
+            return
+
         try:
             self.worker = Worker(host,port)
         except Exception as e:
@@ -318,7 +344,5 @@ class myplugin_t(idaapi.plugin_t):
             idaapi.del_menu_item(ctx)
 
 def PLUGIN_ENTRY():
-    return myplugin_t()
-
-
+    return idarest_plugin_t()
 
