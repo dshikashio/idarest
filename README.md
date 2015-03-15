@@ -48,13 +48,19 @@ which have a 200 code also have a `data` field with additional information.
 
 API
 ---
-### info
+### info : Meta information about the current IDB
 **Arguments:** None
----
-**Returns:** Meta information about the current IDB
----
+
+**Returns:** Object with the following fields
+* md5
+* idb_path
+* file_path
+* ida_dir
+* min_ea
+* max_ea
+* segments
+
 **Example:** curl http://127.0.0.1:8899/ida/api/v1.0/info
----
 
 ### cursor
 
