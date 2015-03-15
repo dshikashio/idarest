@@ -229,15 +229,14 @@ class IDARequestHandler(HTTPRequestHandler):
     @HTTPRequestHandler.route('info')
     def info(self, args):
         # No args, Return everything we can meta-wise about the ida session
-        # segments
         # file crcs
         result = {
                 'md5' : idc.GetInputMD5(),
                 'idb_path' : idc.GetIdbPath(),
                 'file_path' : idc.GetInputFilePath(),
                 'ida_dir' : idc.GetIdaDirectory(),
-                'min_ea' : idc.MinEA(),
-                'max_ea' : idc.MaxEA(),
+                'min_ea' : self._hex(idc.MinEA()),
+                'max_ea' : self._hexidc.MaxEA()),
                 'segments' : self.segments({})['segments'],
             }
         return result
@@ -407,19 +406,16 @@ class idarest_plugin_t(idaapi.plugin_t):
             idaapi.msg("Already running\n")
             return
         try:
-            host,port = self._get_netinfo()
+            self.host,self.port = self._get_netinfo()
         except:
-            host, port = "127.0.0.1", "8899"
-            return
+            pass
 
         try:
-            self.worker = Worker(host,port)
+            self.worker = Worker(self.host,self.port)
         except Exception as e:
             idaapi.msg("Error starting worker : " + str(e) + "\n")
             return
         self.worker.start()
-        self.host = host
-        self.port = port
         idaapi.msg("Worker running\n")
 
     def stop(self, *args):
