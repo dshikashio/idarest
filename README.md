@@ -37,8 +37,6 @@ All responses will be either JSON (`application/json`) or JSONP
 (`application/javascript`) with JSON being the default format.  To have JSONP
 returned, specify a URL parameter `callback` with both POST and GET requests.
 
-Response format (code, msg, data) in json
-
 All responses (errors and non-errors) have `code` and `msg` fields.  Responses
 which have a 200 code also have a `data` field with additional information.
 
@@ -51,9 +49,12 @@ which have a 200 code also have a `data` field with additional information.
 API
 ---
 ### info
-  *Arguments:* None
-  *Returns:* Meta information about the current IDB
-  *Example:* curl http://127.0.0.1:8899/ida/api/v1.0/info
+**Arguments:** None
+---
+**Returns:** Meta information about the current IDB
+---
+**Example:** curl http://127.0.0.1:8899/ida/api/v1.0/info
+---
 
 ### cursor
 
@@ -70,14 +71,14 @@ API To Do List
 Adding New APIs
 ---------------
 ### Registering handlers
-HTTPRequestHandler.prefn
-HTTPRequestHandler.postfn
-HTTPRequestHandler.route
+* HTTPRequestHandler.prefn
+* HTTPRequestHandler.postfn
+* HTTPRequestHandler.route
 
 ### Decorators for parameter checking
-@check_ea
-@require_params
+* @check_ea
+* @require_params
 
 ### Exceptions
-IDARequestError
+* IDARequestError
 
