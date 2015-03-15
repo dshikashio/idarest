@@ -185,6 +185,9 @@ def check_ea(f):
             except ValueError:
                 raise IDARequestError(
                         'ea parameter malformed - must be 0xABCD', 400)
+            if ea > idc.MaxEA():
+                raise IDARequestError(
+                        'ea out of range - MaxEA is 0x%x' % idc.MaxEA(), 400)
             args['ea'] = ea
         return f(self, args)
     return wrapper
@@ -194,10 +197,7 @@ def check_color(f):
         if 'color' in args:
             color = args['color']
             try:
-                color = color.tolower()
-                color.lstrip('#')
-                color.lstrip('0x')
-                color.rstrip('h')
+                color = color.lower().lstrip('#').lstrip('0x').rstrip('h')
                 # IDA Color is BBGGRR, we need to convert from RRGGBB
                 color = color[-2:] + color[2:4] + color[:2]
                 color = int(color, 16)
@@ -226,20 +226,45 @@ class IDARequestHandler(HTTPRequestHandler):
     def _hex(v):
         return hex(v).rstrip('L')
 
+    @HTTPRequestHandler.route('info')
+    def info(self, args):
+        # multiple modes
+
+        # with address return everything about that address
+
+        # with name, return everything about that name
+
+        # No args, Return everything we can meta-wise about the ida session
+
+        # min, max ea
+        # segments
+        # file hashes / crcs
+        result = {}
+        result['md5'] = idc.GetInputMD5()
+        result['idb_path'] = idc.GetIdbPath()
+        result['file_path'] = idc.GetInputFilePath()
+        result['ida_dir'] = idc.GetIdaDirectory()
+
+        return result
+
     @HTTPRequestHandler.route('cursor')
     @check_ea
     def cursor(self, args):
+        # XXX - Doesn't work
+        #if 'window' in args:
+        #    tform = idaapi.find_tform(args['window'])
+        #    if tform:
+        #        idaapi.switchto_tform(tform, 1)
+        #    else:
+        #        raise IDARequestError(
+        #            'invalid window - {0}'.format(args['window']), 400)
+        result = {}
         if 'ea' in args:
             ea = args['ea']
-            def f():
-                #tform = idaapi.find_tform(args['window'])
-                #if tform:
-                #    idaapi.switchto_tform(tform, 1)
-                idaapi.jumpto(ea)
-            idaapi.execute_sync(f, idaapi.MFF_FAST)
-            return {}
-        else:
-            return { 'ea' : self._hex(idaapi.get_screen_ea()) }
+            success = idaapi.jumpto(ea)
+            result['moved'] = success
+        result['ea'] = self._hex(idaapi.get_screen_ea())
+        return result
 
     def _get_segment_info(self, s):
         return {
@@ -277,22 +302,26 @@ class IDARequestHandler(HTTPRequestHandler):
     @check_ea
     @require_params('ea')
     def color(self, args):
+        ea = args['ea']
         if 'color' in args:
-            ea = args['ea']
             color = args['color']
             def f():
                 idc.SetColor(ea, idc.CIC_ITEM, color)
-                idc.Refresh()
             idaapi.execute_sync(f, idaapi.MFF_WRITE)
+            idc.Refresh()
             return {}
         else:
             return {'color' : str(GetColor(ea, idc.CIC_ITEM))}
 
-    # Add query handler
-    # take an address, return as much known about is as possible
-    
-    # provide an info function - return all meta, general ida info
+# Add query handler
+# take an address, return as much known about is as possible
+
+# provide an info function - return all meta, general ida info
         
+# Figure out when this is really needed
+#def f():
+#    idaapi.jumpto(ea) # DO STUFF
+#idaapi.execute_sync(f, idaapi.MFF_FAST)
 
 """
 Threaded HTTP Server and Worker
