@@ -49,28 +49,40 @@ which have a 200 code also have a `data` field with additional information.
 API
 ---
 ### info : Meta information about the current IDB
-**Arguments:** None
-
-**Returns:** Object with the following fields
-* md5
-* idb_path
-* file_path
-* ida_dir
-* min_ea
-* max_ea
-* segments
 
 **Example:**
 
     curl http://127.0.0.1:8899/ida/api/v1.0/info
 
-### cursor
+### cursor : Get and set current disassembly window cursor position
 
-### segments
+**Example:**
 
-### names
+    curl http://127.0.0.1:8899/ida/api/v1.0/cursor
 
-### color
+    curl http://127.0.0.1:8899/ida/api/v1.0/cursor?ea=0x89ab
+
+### segments : Get segment information
+
+**Example:**
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/segments
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/segments?ea=0x89ab
+
+### names : Get name list
+
+**Example:**
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/names
+
+### color : Get and set color information
+
+**Example:**
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/color?ea=0x89ab
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/color?ea=0x89ab?color=FF0000
 
 API To Do List
 --------------
