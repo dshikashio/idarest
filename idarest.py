@@ -228,24 +228,28 @@ class IDARequestHandler(HTTPRequestHandler):
 
     @HTTPRequestHandler.route('info')
     def info(self, args):
-        # multiple modes
-
-        # with address return everything about that address
-
-        # with name, return everything about that name
-
         # No args, Return everything we can meta-wise about the ida session
-
-        # min, max ea
         # segments
-        # file hashes / crcs
-        result = {}
-        result['md5'] = idc.GetInputMD5()
-        result['idb_path'] = idc.GetIdbPath()
-        result['file_path'] = idc.GetInputFilePath()
-        result['ida_dir'] = idc.GetIdaDirectory()
-
+        # file crcs
+        result = {
+                'md5' : idc.GetInputMD5(),
+                'idb_path' : idc.GetIdbPath(),
+                'file_path' : idc.GetInputFilePath(),
+                'ida_dir' : idc.GetIdaDirectory(),
+                'min_ea' : idc.MinEA(),
+                'max_ea' : idc.MaxEA(),
+                'segments' : self.segments({})['segments'],
+            }
         return result
+
+    @HTTPRequestHandler.route('query')
+    @check_ea
+    def query(self, args):
+        # multiple modes
+        # with address return everything about that address
+        # with name, return everything about that name
+        return {}
+
 
     @HTTPRequestHandler.route('cursor')
     @check_ea
@@ -268,12 +272,12 @@ class IDARequestHandler(HTTPRequestHandler):
 
     def _get_segment_info(self, s):
         return {
-                'name' : idaapi.get_true_segm_name(s),
-                'ida_name' : idaapi.get_segm_name(s),
-                'start' : self._hex(s.startEA),
-                'end' : self._hex(s.endEA),
-                'size' : self._hex(s.size())
-            }
+            'name' : idaapi.get_true_segm_name(s),
+            'ida_name' : idaapi.get_segm_name(s),
+            'start' : self._hex(s.startEA),
+            'end' : self._hex(s.endEA),
+            'size' : self._hex(s.size())
+        }
 
     @HTTPRequestHandler.route('segments')
     @check_ea
@@ -313,10 +317,6 @@ class IDARequestHandler(HTTPRequestHandler):
         else:
             return {'color' : str(GetColor(ea, idc.CIC_ITEM))}
 
-# Add query handler
-# take an address, return as much known about is as possible
-
-# provide an info function - return all meta, general ida info
         
 # Figure out when this is really needed
 #def f():
