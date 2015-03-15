@@ -60,7 +60,9 @@ API
 * max_ea
 * segments
 
-**Example:** curl http://127.0.0.1:8899/ida/api/v1.0/info
+**Example:**
+
+    curl http://127.0.0.1:8899/ida/api/v1.0/info
 
 ### cursor
 
