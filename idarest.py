@@ -238,6 +238,8 @@ class IDARequestHandler(HTTPRequestHandler):
                 'min_ea' : self._hex(idc.MinEA()),
                 'max_ea' : self._hexidc.MaxEA()),
                 'segments' : self.segments({})['segments'],
+                # idaapi.cvar.inf
+                'procname' : idc.GetLongPrm(idc.INF_PROCNAME),
             }
         return result
 
