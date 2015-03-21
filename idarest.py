@@ -197,7 +197,9 @@ def check_color(f):
         if 'color' in args:
             color = args['color']
             try:
-                color = color.lower().lstrip('#').lstrip('0x').rstrip('h')
+                color = color.lower().lstrip('#').rstrip('h')
+                if color.startswith('0x'):
+                    color = color[2:]
                 # IDA Color is BBGGRR, we need to convert from RRGGBB
                 color = color[-2:] + color[2:4] + color[:2]
                 color = int(color, 16)
